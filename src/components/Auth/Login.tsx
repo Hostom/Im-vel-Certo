@@ -1,0 +1,162 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
+import { Building2 } from "lucide-react";
+
+export const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [nome, setNome] = useState("");
+  const [tipo, setTipo] = useState<"captador" | "gerente_regional" | "admin">("captador");
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (isSignUp) {
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (authError) throw authError;
+
+        if (authData.user) {
+          const { error: profileError } = await supabase
+            .from("usuarios")
+            .insert({
+              id: authData.user.id,
+              nome,
+              email,
+              tipo,
+              ativo: true,
+            });
+
+          if (profileError) throw profileError;
+
+          toast({
+            title: "Conta criada com sucesso!",
+            description: "Você já pode fazer login",
+          });
+          setIsSignUp(false);
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Login realizado!",
+          description: "Bem-vindo ao sistema",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-primary/5 to-success/5 p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-3 text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-primary rounded-2xl flex items-center justify-center">
+            <Building2 className="w-8 h-8 text-primary-foreground" />
+          </div>
+          <CardTitle className="text-2xl">Sistema de Captação</CardTitle>
+          <CardDescription>
+            {isSignUp ? "Criar nova conta no sistema" : "Entre com suas credenciais"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAuth} className="space-y-4">
+            {isSignUp && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome Completo</Label>
+                  <Input
+                    id="nome"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    required
+                    placeholder="Seu nome"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="tipo">Tipo de Usuário</Label>
+                  <select
+                    id="tipo"
+                    value={tipo}
+                    onChange={(e) => setTipo(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background"
+                    required
+                  >
+                    <option value="captador">Captador(a)</option>
+                    <option value="gerente_regional">Gerente Regional</option>
+                    <option value="admin">Administrador</option>
+                  </select>
+                </div>
+              </>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="seu@email.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full bg-gradient-primary hover:opacity-90 transition-opacity"
+              disabled={loading}
+            >
+              {loading ? "Aguarde..." : isSignUp ? "Criar Conta" : "Entrar"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              onClick={() => setIsSignUp(!isSignUp)}
+            >
+              {isSignUp ? "Já tem conta? Faça login" : "Criar nova conta"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
