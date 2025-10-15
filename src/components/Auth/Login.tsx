@@ -14,7 +14,6 @@ export const Login = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [nome, setNome] = useState("");
-  const [tipo, setTipo] = useState<"captador" | "gerente_regional" | "admin">("captador");
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -32,17 +31,29 @@ export const Login = () => {
         if (authError) throw authError;
 
         if (authData.user) {
+          // Create user profile with default 'captador' role
+          // Only admins can assign other roles through the admin panel
           const { error: profileError } = await supabase
             .from("usuarios")
             .insert({
               id: authData.user.id,
               nome,
               email,
-              tipo,
+              tipo: "captador", // Default role for all new signups
               ativo: true,
             });
 
           if (profileError) throw profileError;
+
+          // Assign default 'captador' role in user_roles table
+          const { error: roleError } = await supabase
+            .from("user_roles")
+            .insert({
+              user_id: authData.user.id,
+              role: "captador",
+            });
+
+          if (roleError) throw roleError;
 
           toast({
             title: "Conta criada com sucesso!",
@@ -90,32 +101,16 @@ export const Login = () => {
         <CardContent>
           <form onSubmit={handleAuth} className="space-y-4">
             {isSignUp && (
-              <>
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome Completo</Label>
-                  <Input
-                    id="nome"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    required
-                    placeholder="Seu nome"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tipo">Tipo de Usuário</Label>
-                  <select
-                    id="tipo"
-                    value={tipo}
-                    onChange={(e) => setTipo(e.target.value as any)}
-                    className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                    required
-                  >
-                    <option value="captador">Captador(a)</option>
-                    <option value="gerente_regional">Gerente Regional</option>
-                    <option value="admin">Administrador</option>
-                  </select>
-                </div>
-              </>
+              <div className="space-y-2">
+                <Label htmlFor="nome">Nome Completo</Label>
+                <Input
+                  id="nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  required
+                  placeholder="Seu nome"
+                />
+              </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">E-mail</Label>

@@ -7,7 +7,7 @@ import { RouletteWheel } from "@/components/Roleta/RouletteWheel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { LogOut, Plus, BarChart3 } from "lucide-react";
+import { LogOut, Plus, BarChart3, UserCog } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export default function Dashboard() {
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [usuario, setUsuario] = useState<any>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
   const [metrics, setMetrics] = useState<any>(null);
   const [missoes, setMissoes] = useState<any[]>([]);
   const [demandasPendentes, setDemandasPendentes] = useState<any[]>([]);
@@ -42,6 +43,14 @@ export default function Dashboard() {
       .single();
 
     setUsuario(usuarioData);
+
+    // Load user roles
+    const { data: rolesData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+
+    setUserRoles(rolesData?.map(r => r.role) || []);
   };
 
   const loadData = async () => {
@@ -155,10 +164,18 @@ export default function Dashboard() {
                 Olá, {usuario?.nome} ({usuario?.tipo})
               </p>
             </div>
-            <Button onClick={handleLogout} variant="ghost" size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sair
-            </Button>
+            <div className="flex gap-2">
+              {(userRoles.includes("admin") || userRoles.includes("diretor")) && (
+                <Button onClick={() => navigate("/admin/usuarios")} variant="outline" size="sm">
+                  <UserCog className="h-4 w-4 mr-2" />
+                  Gerenciar Usuários
+                </Button>
+              )}
+              <Button onClick={handleLogout} variant="ghost" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sair
+              </Button>
+            </div>
           </div>
         </div>
       </header>
