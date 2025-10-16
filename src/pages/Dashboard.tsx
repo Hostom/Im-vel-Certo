@@ -22,6 +22,11 @@ export default function Dashboard() {
   const [captadores, setCaptadores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDemanda, setSelectedDemanda] = useState<any>(null);
+  
+  const podeCriarDemanda =
+  usuario?.tipo === "admin" ||
+  usuario?.tipo === "diretor" ||
+  usuario?.tipo === "gerente_regional";
 
   useEffect(() => {
     checkAuth();
@@ -102,9 +107,6 @@ export default function Dashboard() {
     }
   };
 
-  // Permissão para criar demandas
-  const podeCriarDemanda = ["admin", "diretor", "gerente_regional"].includes(usuario?.tipo);
-
   const handleAssignMission = async (demandaId: string, captadorId: string) => {
     try {
       const { error: missaoError } = await supabase
@@ -183,13 +185,16 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-                {podeCriarDemanda && (
-          <div className="flex justify-end mb-4">
-            <Button onClick={() => navigate("/demandas/nova")} className="bg-gradient-primary">
-              <Plus className="h-4 w-4 mr-1" /> Criar Demanda
-            </Button>
-          </div>
-        )}
+  {podeCriarDemanda && (
+    <div className="flex justify-end mb-4">
+      <Button
+        onClick={() => navigate("/demandas/nova")}
+        className="bg-gradient-primary"
+      >
+        <Plus className="h-4 w-4 mr-1" /> Criar Demanda
+      </Button>
+    </div>
+  )}
 
         {metrics && <MetricsCards metrics={metrics} />}
 
