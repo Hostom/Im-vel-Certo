@@ -22,11 +22,6 @@ export default function Dashboard() {
   const [captadores, setCaptadores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDemanda, setSelectedDemanda] = useState<any>(null);
-  
-  const podeCriarDemanda =
-  usuario?.tipo === "admin" ||
-  usuario?.tipo === "diretor" ||
-  usuario?.tipo === "gerente_regional";
 
   useEffect(() => {
     checkAuth();
@@ -56,7 +51,19 @@ export default function Dashboard() {
       .eq("user_id", user.id);
 
     setUserRoles(rolesData?.map(r => r.role) || []);
+    console.log("🧭 Debug → usuarioData:", usuarioData);
+    console.log("🧭 Debug → userRoles:", rolesData);  
   };
+
+// Determinar se o usuário pode criar demandas
+const podeCriarDemanda =
+  userRoles &&
+  (
+    userRoles.includes("admin") ||
+    userRoles.includes("diretor") ||
+    userRoles.includes("gerente_regional")
+  );
+
 
   const loadData = async () => {
     try {
