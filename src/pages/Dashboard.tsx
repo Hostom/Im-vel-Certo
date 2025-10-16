@@ -183,8 +183,8 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-6 space-y-6">
         {metrics && <MetricsCards metrics={metrics} />}
 
-        {(usuario?.tipo === "admin" || usuario?.tipo === "gerente_regional") && demandasPendentes.length > 0 && (
-          <Card className="shadow-card">
+        {(userRoles.includes("admin") || userRoles.includes("gerente_regional") || userRoles.includes("diretor")) && demandasPendentes.length > 0 && (
+            <Card className="shadow-card">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
@@ -269,3 +269,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
