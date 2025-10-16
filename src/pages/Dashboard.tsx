@@ -87,8 +87,7 @@ export default function Dashboard() {
       const { data: captadoresData } = await supabase
         .from("usuarios")
         .select("*")
-        .eq("tipo", "captador")
-        .eq("ativo", true);
+         .eq("tipo", "captador");
 
       setCaptadores(captadoresData || []);
 
@@ -102,6 +101,9 @@ export default function Dashboard() {
       setLoading(false);
     }
   };
+
+  // Permissão para criar demandas
+  const podeCriarDemanda = ["admin", "diretor", "gerente_regional"].includes(usuario?.tipo);
 
   const handleAssignMission = async (demandaId: string, captadorId: string) => {
     try {
@@ -181,6 +183,14 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
+                {podeCriarDemanda && (
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => navigate("/demandas/nova")} className="bg-gradient-primary">
+              <Plus className="h-4 w-4 mr-1" /> Criar Demanda
+            </Button>
+          </div>
+        )}
+
         {metrics && <MetricsCards metrics={metrics} />}
 
         {(userRoles.includes("admin") || userRoles.includes("gerente_regional") || userRoles.includes("diretor")) && demandasPendentes.length > 0 && (
