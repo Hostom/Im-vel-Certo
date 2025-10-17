@@ -24,6 +24,11 @@ export default function Dashboard() {
   const [selectedDemanda, setSelectedDemanda] = useState<any>(null);
 
   useEffect(() => {
+  console.log("Usuário carregado:", usuario);
+  console.log("Funções (roles):", userRoles);
+}, [usuario, userRoles]);
+
+  useEffect(() => {
     checkAuth();
     loadData();
   }, []);
@@ -176,6 +181,11 @@ const podeCriarDemanda =
               </p>
             </div>
             <div className="flex gap-2">
+            {podeCriarDemanda && (
+              <Button onClick={() => navigate("/demandas/nova")} variant="default" size="sm">
+                  Criar Demanda
+                </Button>
+               )}
               {(userRoles.includes("admin") || userRoles.includes("diretor")) && (
                 <Button onClick={() => navigate("/admin/usuarios")} variant="outline" size="sm">
                   <UserCog className="h-4 w-4 mr-2" />
