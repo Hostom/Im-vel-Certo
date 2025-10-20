@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const NovaDemanda = () => {
   const navigate = useNavigate();
@@ -29,22 +30,95 @@ const NovaDemanda = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/demandas`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        toast.error("Sessão expirada. Faça login novamente.");
+        navigate("/");
+        return;
+      }
+
+      // 1) Criar a demanda no Supabase
+      const { data: demanda, error: demandaError } = await supabase
+        .from("demandas")
+        .insert({
+          codigo_demanda: formData.codigo_demanda,
+          consultor_locacao: formData.consultor_locacao,
+          cliente_interessado: formData.cliente_interessado,
+          contato: formData.contato,
+          tipo_imovel: formData.tipo_imovel,
+          regiao_desejada: formData.regiao_desejada,
+          regiao_demanda: formData.regiao_desejada || "Geral",
+          faixa_aluguel: formData.faixa_aluguel,
+          caracteristicas_desejadas: formData.caracteristicas_desejadas || null,
+          prazo_necessidade: formData.prazo_necessidade,
+          observacoes: formData.observacoes || null,
+          criado_por_id: user.id,
+        })
+        .select("*")
+        .single();
+
+      if (demandaError || !demanda) {
+        throw new Error(demandaError?.message || "Falha ao inserir demanda");
+      }
+
+      // 2) Buscar captadores disponíveis para a região (ou Geral) e fazer roleta
+      const { data: captadoresData, error: captadoresError } = await supabase
+        .from("usuarios")
+        .select("*")
+        .eq("tipo", "captador");
+
+      if (captadoresError) {
+        throw new Error(captadoresError.message);
+      }
+
+      const candidatos = (captadoresData || []).filter(
+        (c) => c.regiao === demanda.regiao_demanda || c.regiao === "Geral"
+      );
+
+      if (!candidatos.length) {
+        toast.warning(
+          "Demanda criada, mas nenhum captador disponível na região. Atribua manualmente."
+        );
+        navigate("/dashboard");
+        return;
+      }
+
+      const sorteadoIndex = Math.floor(Math.random() * candidatos.length);
+      const captadorSelecionado = candidatos[sorteadoIndex];
+
+      // 3) Criar missão para o captador sorteado
+      const { error: missaoError } = await supabase.from("missoes").insert({
+        demanda_id: demanda.id,
+        captador_id: captadorSelecionado.id,
+        criado_por_id: user.id,
+        status: "em_andamento",
+        prazo_horas: 48,
       });
 
-      if (response.ok) {
-        toast.success("Demanda criada com sucesso!");
-        navigate("/dashboard");
-      } else {
-        const error = await response.json();
-        toast.error("Erro ao criar demanda: " + (error.error || "Erro desconhecido"));
+      if (missaoError) {
+        throw new Error(missaoError.message);
       }
-    } catch (error) {
-      console.error("Erro ao criar demanda:", error);
-      toast.error("Erro ao criar demanda");
+
+      // 4) Atualizar status da demanda para em_captacao
+      const { error: updateDemandaError } = await supabase
+        .from("demandas")
+        .update({ status: "em_captacao" })
+        .eq("id", demanda.id);
+
+      if (updateDemandaError) {
+        throw new Error(updateDemandaError.message);
+      }
+
+      toast.success(
+        `Demanda criada e atribuída via roleta para ${captadorSelecionado.nome}.`
+      );
+      navigate("/dashboard");
+    } catch (error: any) {
+      console.error("Erro ao criar e atribuir demanda:", error);
+      toast.error(`Erro: ${error?.message || "não foi possível criar a demanda"}`);
     }
   };
 
@@ -122,6 +196,17 @@ const NovaDemanda = () => {
               required
             />
           </div>
+        </div>
+
+        <div>
+          <Label htmlFor="prazo_necessidade">Prazo de Necessidade</Label>
+          <Input
+            name="prazo_necessidade"
+            value={formData.prazo_necessidade}
+            onChange={handleChange}
+            placeholder="Ex.: Urgente (15 dias), 30 dias, 60 dias"
+            required
+          />
         </div>
 
         <div>
