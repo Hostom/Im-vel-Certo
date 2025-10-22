@@ -37,7 +37,7 @@ export class AuthService {
 
     const token = jwt.sign(payload, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
-    });
+    } as jwt.SignOptions);
 
     // Remover senha_hash do objeto
     const { senha_hash, ...usuarioSemSenha } = usuario;
