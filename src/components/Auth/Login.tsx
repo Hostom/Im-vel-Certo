@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthStore } from "@/stores/authStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,7 @@ export const Login = () => {
   const [nome, setNome] = useState("");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { login, register } = useAuthStore();
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,52 +24,14 @@ export const Login = () => {
 
     try {
       if (isSignUp) {
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email,
-          password,
+        await register(nome, email, password);
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Você já pode fazer login",
         });
-
-        if (authError) throw authError;
-
-        if (authData.user) {
-          // Create user profile with default 'captador' role
-          // Only admins can assign other roles through the admin panel
-          const { error: profileError } = await supabase
-            .from("usuarios")
-            .insert({
-              id: authData.user.id,
-              nome,
-              email,
-              tipo: "captador", // Default role for all new signups
-              ativo: true,
-            });
-
-          if (profileError) throw profileError;
-
-          // Assign default 'captador' role in user_roles table
-          const { error: roleError } = await supabase
-            .from("user_roles")
-            .insert({
-              user_id: authData.user.id,
-              role: "captador",
-            });
-
-          if (roleError) throw roleError;
-
-          toast({
-            title: "Conta criada com sucesso!",
-            description: "Você já pode fazer login",
-          });
-          setIsSignUp(false);
-        }
+        setIsSignUp(false);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (error) throw error;
-
+        await login(email, password);
         toast({
           title: "Login realizado!",
           description: "Bem-vindo ao sistema",

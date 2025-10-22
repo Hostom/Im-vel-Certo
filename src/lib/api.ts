@@ -1,0 +1,41 @@
+import axios, { type AxiosRequestHeaders } from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+
+export const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Adiciona token automaticamente
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('auth_token');
+  if (token) {
+    const headers = (config.headers ?? {}) as AxiosRequestHeaders;
+    if (typeof (headers as any).set === 'function') {
+      (headers as any).set('Authorization', `Bearer ${token}`);
+    } else {
+      (headers as any).Authorization = `Bearer ${token}`;
+    }
+    config.headers = headers;
+  }
+  return config;
+});
+
+// Trata 401 globalmente
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err?.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user');
+    }
+    return Promise.reject(err);
+  }
+);
+
+export default api;
+
+
