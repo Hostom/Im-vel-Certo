@@ -83,16 +83,22 @@ app.use(errorHandler);
 
 async function startServer() {
   try {
-    // Testar conexão com o banco
-    await pool.query('SELECT NOW()');
-    console.log('✅ Conexão com PostgreSQL estabelecida');
-
-    // Iniciar servidor
-    app.listen(PORT, () => {
+    // Iniciar servidor primeiro
+    const server = app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);
       console.log(`📍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
       console.log(`🔗 URL: http://localhost:${PORT}`);
     });
+
+    // Testar conexão com o banco em background
+    try {
+      await pool.query('SELECT NOW()');
+      console.log('✅ Conexão com PostgreSQL estabelecida');
+    } catch (dbError) {
+      console.warn('⚠️ Aviso: Não foi possível conectar ao banco de dados:', dbError.message);
+      console.log('🔄 Servidor iniciado sem banco de dados - configuração pendente');
+    }
+
   } catch (error) {
     console.error('❌ Erro ao iniciar servidor:', error);
     process.exit(1);
