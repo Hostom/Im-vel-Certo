@@ -6,8 +6,13 @@ interface User {
   id: string;
   nome: string;
   email: string;
-  tipo: string;
+  tipo: 'captador' | 'gerente_regional' | 'admin' | 'diretor';
   regiao: string;
+  regioes_responsavel?: string | null;
+  gerente_responsavel_id?: string | null;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 interface AuthState {
@@ -36,7 +41,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       register: async (nome: string, email: string, senha: string) => {
-        await api.post('/auth/register', { nome, email, senha });
+        const res = await api.post('/auth/register', { nome, email, senha });
+        // Após registro, fazer login automaticamente
+        const { token, user } = res.data.data;
+        localStorage.setItem('auth_token', token);
+        set({ user, token, isAuthenticated: true });
       },
 
       me: async () => {

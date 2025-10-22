@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthStore } from "@/stores/authStore";
+import api from "@/lib/api";
+import { canCreateDemanda, canManageUsers, canAssignMissions } from "@/lib/permissions";
 import { MetricsCards } from "@/components/Dashboard/MetricsCards";
 import { MissaoCard } from "@/components/Missoes/MissaoCard";
 import { RouletteWheel } from "@/components/Roleta/RouletteWheel";
@@ -34,79 +36,32 @@ export default function Dashboard() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { user, isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated || !user) {
       navigate("/");
       return;
     }
     setUser(user);
-
-    const { data: usuarioData } = await supabase
-      .from("usuarios")
-      .select("*")
-      .eq("id", user.id)
-      .single();
-
-    setUsuario(usuarioData);
-
-    // Load user roles
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-
-    setUserRoles(rolesData?.map(r => r.role) || []);
-    console.log("🧭 Debug → usuarioData:", usuarioData);
-    console.log("🧭 Debug → userRoles:", rolesData);  
+    setUsuario(user);
+    setUserRoles([user.tipo]);
+    console.log("🧭 Debug → usuarioData:", user);
+    console.log("🧭 Debug → userRoles:", [user.tipo]);  
   };
 
 // Determinar se o usuário pode criar demandas
-const podeCriarDemanda =
-  userRoles &&
-  (
-    userRoles.includes("admin") ||
-    userRoles.includes("diretor") ||
-    userRoles.includes("gerente_regional")
-  );
+const podeCriarDemanda = usuario ? canCreateDemanda(usuario.tipo) : false;
+const podeGerenciarUsuarios = usuario ? canManageUsers(usuario.tipo) : false;
+const podeAtribuirMissoes = usuario ? canAssignMissions(usuario.tipo) : false;
 
 
   const loadData = async () => {
     try {
-      const { data: metricsData } = await supabase
-        .from("vw_metricas_dashboard")
-        .select("*")
-        .single();
-
-      setMetrics(metricsData);
-
-      const { data: missoesData } = await supabase
-        .from("missoes")
-        .select(`
-          *,
-          demandas(*),
-          usuarios(nome)
-        `)
-        .in("status", ["em_andamento", "imovel_encontrado"])
-        .order("data_limite", { ascending: true })
-        .limit(10);
-
-      setMissoes(missoesData || []);
-
-      const { data: demandasData } = await supabase
-        .from("demandas")
-        .select("*")
-        .eq("status", "pendente")
-        .gte("valor_aluguel_min", 8000)
-        .order("created_at", { ascending: false });
-
-      setDemandasPendentes(demandasData || []);
-
-      const { data: captadoresData } = await supabase
-        .from("usuarios")
-        .select("*")
-         .eq("tipo", "captador");
-
-      setCaptadores(captadoresData || []);
+      // TODO: Implementar endpoints no backend para métricas, missões, demandas e captadores
+      // Por enquanto, deixar vazio para não quebrar
+      setMetrics(null);
+      setMissoes([]);
+      setDemandasPendentes([]);
+      setCaptadores([]);
 
     } catch (error: any) {
       toast({
@@ -121,32 +76,11 @@ const podeCriarDemanda =
 
   const handleAssignMission = async (demandaId: string, captadorId: string) => {
     try {
-      const { error: missaoError } = await supabase
-        .from("missoes")
-        .insert({
-          demanda_id: demandaId,
-          captador_id: captadorId,
-          criado_por_id: user?.id,
-          status: "em_andamento",
-          prazo_horas: 48,
-        });
-
-      if (missaoError) throw missaoError;
-
-      const { error: demandaError } = await supabase
-        .from("demandas")
-        .update({ status: "em_captacao" })
-        .eq("id", demandaId);
-
-      if (demandaError) throw demandaError;
-
+      // TODO: Implementar endpoint no backend para criar missões
       toast({
-        title: "Missão criada!",
-        description: "A demanda foi atribuída com sucesso",
+        title: "Funcionalidade em desenvolvimento",
+        description: "Criação de missões será implementada em breve",
       });
-
-      setSelectedDemanda(null);
-      loadData();
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -157,7 +91,8 @@ const podeCriarDemanda =
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    const { logout } = useAuthStore.getState();
+    await logout();
     navigate("/");
   };
 
@@ -186,7 +121,7 @@ const podeCriarDemanda =
                   Criar Demanda
                 </Button>
                )}
-              {(userRoles.includes("admin") || userRoles.includes("diretor")) && (
+              {podeGerenciarUsuarios && (
                 <Button onClick={() => navigate("/admin/usuarios")} variant="outline" size="sm">
                   <UserCog className="h-4 w-4 mr-2" />
                   Gerenciar Usuários

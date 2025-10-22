@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthStore } from "@/stores/authStore";
+import api from "@/lib/api";
+import { canManageUsers } from "@/lib/permissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -46,19 +48,14 @@ export default function AdminUsuarios() {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
+    const { user, isAuthenticated } = useAuthStore.getState();
+    if (!isAuthenticated || !user) {
       navigate("/");
       return;
     }
 
-    // Check if user is admin
-    const { data: roles } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
-
-    const isAdmin = roles?.some(r => r.role === "admin" || r.role === "diretor");
+    // Check if user can manage users
+    const isAdmin = canManageUsers(user.tipo);
     
     if (!isAdmin) {
       toast({
@@ -76,32 +73,10 @@ export default function AdminUsuarios() {
 
   const loadUsuarios = async () => {
     try {
-      // Load all users
-      const { data: usuariosData, error: usuariosError } = await supabase
-        .from("usuarios")
-        .select("*")
-        .order("nome");
-
-      if (usuariosError) throw usuariosError;
-
-      // Load all user roles
-      const { data: rolesData, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("user_id, role");
-
-      if (rolesError) throw rolesError;
-
-      // Group roles by user_id
-      const rolesByUser: Record<string, UserRole[]> = {};
-      rolesData?.forEach(({ user_id, role }) => {
-        if (!rolesByUser[user_id]) {
-          rolesByUser[user_id] = [];
-        }
-        rolesByUser[user_id].push(role as UserRole);
-      });
-
-      setUsuarios(usuariosData || []);
-      setUserRoles(rolesByUser);
+      // TODO: Implementar endpoint no backend para listar usuários
+      // Por enquanto, deixar vazio para não quebrar
+      setUsuarios([]);
+      setUserRoles({});
     } catch (error: any) {
       toast({
         title: "Erro ao carregar usuários",
@@ -116,63 +91,11 @@ export default function AdminUsuarios() {
   const handleRoleToggle = async (userId: string, role: UserRole, isChecked: boolean) => {
     setSavingUserId(userId);
     try {
-      if (isChecked) {
-        // Add role
-        const { error } = await supabase
-          .from("user_roles")
-          .insert({
-            user_id: userId,
-            role: role,
-            created_by: currentUser.id,
-          });
-
-        if (error) throw error;
-
-        setUserRoles(prev => ({
-          ...prev,
-          [userId]: [...(prev[userId] || []), role],
-        }));
-
-        toast({
-          title: "Papel atribuído",
-          description: `Papel ${role} adicionado com sucesso`,
-        });
-      } else {
-        // Remove role
-        const { error } = await supabase
-          .from("user_roles")
-          .delete()
-          .eq("user_id", userId)
-          .eq("role", role);
-
-        if (error) throw error;
-
-        setUserRoles(prev => ({
-          ...prev,
-          [userId]: (prev[userId] || []).filter(r => r !== role),
-        }));
-
-        toast({
-          title: "Papel removido",
-          description: `Papel ${role} removido com sucesso`,
-        });
-      }
-
-      // Update tipo field in usuarios table for backward compatibility
-      const newRoles = isChecked 
-        ? [...(userRoles[userId] || []), role]
-        : (userRoles[userId] || []).filter(r => r !== role);
-      
-      const primaryRole = newRoles.includes("admin") ? "admin" 
-        : newRoles.includes("diretor") ? "diretor"
-        : newRoles.includes("gerente_regional") ? "gerente_regional"
-        : "captador";
-
-      await supabase
-        .from("usuarios")
-        .update({ tipo: primaryRole })
-        .eq("id", userId);
-
+      // TODO: Implementar endpoints no backend para gerenciar roles
+      toast({
+        title: "Funcionalidade em desenvolvimento",
+        description: "Gerenciamento de roles será implementado em breve",
+      });
     } catch (error: any) {
       toast({
         title: "Erro",
