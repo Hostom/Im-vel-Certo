@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
 import { canCreateDemanda, canManageUsers, canAssignMissions } from "@/lib/permissions";
+import { User, Metrics, Missao, Demanda, Captador } from "@/types/dashboard";
 import { MetricsCards } from "@/components/Dashboard/MetricsCards";
 import { MissaoCard } from "@/components/Missoes/MissaoCard";
 import { RouletteWheel } from "@/components/Roleta/RouletteWheel";
@@ -15,15 +16,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [user, setUser] = useState<any>(null);
-  const [usuario, setUsuario] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [usuario, setUsuario] = useState<User | null>(null);
   const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
-  const [missoes, setMissoes] = useState<any[]>([]);
-  const [demandasPendentes, setDemandasPendentes] = useState<any[]>([]);
-  const [captadores, setCaptadores] = useState<any[]>([]);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [missoes, setMissoes] = useState<Missao[]>([]);
+  const [demandasPendentes, setDemandasPendentes] = useState<Demanda[]>([]);
+  const [captadores, setCaptadores] = useState<Captador[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDemanda, setSelectedDemanda] = useState<any>(null);
+  const [selectedDemanda, setSelectedDemanda] = useState<Demanda | null>(null);
 
   useEffect(() => {
   console.log("Usuário carregado:", usuario);
@@ -33,9 +34,9 @@ export default function Dashboard() {
   useEffect(() => {
     checkAuth();
     loadData();
-  }, []);
+  }, [checkAuth, loadData]);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { user, isAuthenticated } = useAuthStore.getState();
     if (!isAuthenticated || !user) {
       navigate("/");
@@ -46,7 +47,7 @@ export default function Dashboard() {
     setUserRoles([user.tipo]);
     console.log("🧭 Debug → usuarioData:", user);
     console.log("🧭 Debug → userRoles:", [user.tipo]);  
-  };
+  }, [navigate]);
 
 // Determinar se o usuário pode criar demandas
 const podeCriarDemanda = usuario ? canCreateDemanda(usuario.tipo) : false;
@@ -54,7 +55,7 @@ const podeGerenciarUsuarios = usuario ? canManageUsers(usuario.tipo) : false;
 const podeAtribuirMissoes = usuario ? canAssignMissions(usuario.tipo) : false;
 
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       // TODO: Implementar endpoints no backend para métricas, missões, demandas e captadores
       // Por enquanto, deixar vazio para não quebrar
@@ -63,16 +64,17 @@ const podeAtribuirMissoes = usuario ? canAssignMissions(usuario.tipo) : false;
       setDemandasPendentes([]);
       setCaptadores([]);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao carregar dados",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const handleAssignMission = async (demandaId: string, captadorId: string) => {
     try {
@@ -81,10 +83,11 @@ const podeAtribuirMissoes = usuario ? canAssignMissions(usuario.tipo) : false;
         title: "Funcionalidade em desenvolvimento",
         description: "Criação de missões será implementada em breve",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     }

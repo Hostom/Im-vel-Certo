@@ -93,7 +93,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: async () => {
-        try { await api.post('/auth/logout'); } catch {}
+        try { 
+          await api.post('/auth/logout'); 
+        } catch (error) {
+          console.warn('Erro ao fazer logout:', error);
+        }
         localStorage.removeItem('auth_token');
         set({ user: null, token: null, isAuthenticated: false });
       },

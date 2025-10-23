@@ -14,10 +14,10 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('auth_token');
   if (token) {
     const headers = (config.headers ?? {}) as AxiosRequestHeaders;
-    if (typeof (headers as any).set === 'function') {
-      (headers as any).set('Authorization', `Bearer ${token}`);
+    if (typeof (headers as Record<string, unknown>).set === 'function') {
+      (headers as Record<string, unknown>).set('Authorization', `Bearer ${token}`);
     } else {
-      (headers as any).Authorization = `Bearer ${token}`;
+      (headers as Record<string, unknown>).Authorization = `Bearer ${token}`;
     }
     config.headers = headers;
   }
