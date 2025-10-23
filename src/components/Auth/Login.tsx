@@ -38,10 +38,11 @@ export const Login = () => {
         });
         navigate("/dashboard");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

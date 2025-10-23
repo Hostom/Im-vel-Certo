@@ -73,7 +73,7 @@ export const MissaoCard = ({ missao, onUpdateStatus }: MissaoCardProps) => {
             </CardTitle>
             <p className="text-sm text-muted-foreground">{missao.demandas.cliente_interessado}</p>
           </div>
-          <Badge variant={currentStatus.variant as any}>{currentStatus.label}</Badge>
+          <Badge variant={currentStatus.variant as "default" | "secondary" | "destructive" | "outline"}>{currentStatus.label}</Badge>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">

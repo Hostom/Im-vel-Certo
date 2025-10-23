@@ -61,9 +61,10 @@ const NovaDemanda = () => {
 
       toast.success("Demanda criada com sucesso!");
       navigate("/dashboard");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao criar demanda:", error);
-      toast.error(`Erro: ${error?.response?.data?.error || "não foi possível criar a demanda"}`);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro: ${errorMessage}`);
     }
   };
 

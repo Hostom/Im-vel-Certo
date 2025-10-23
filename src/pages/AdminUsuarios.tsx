@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/stores/authStore";
 import api from "@/lib/api";
@@ -37,7 +37,7 @@ const AVAILABLE_ROLES: { value: UserRole; label: string; description: string }[]
 export default function AdminUsuarios() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [userRoles, setUserRoles] = useState<Record<string, UserRole[]>>({});
   const [loading, setLoading] = useState(true);
@@ -45,9 +45,9 @@ export default function AdminUsuarios() {
 
   useEffect(() => {
     checkAuth();
-  }, []);
+  }, [checkAuth]);
 
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     const { user, isAuthenticated } = useAuthStore.getState();
     if (!isAuthenticated || !user) {
       navigate("/");
@@ -69,7 +69,7 @@ export default function AdminUsuarios() {
 
     setCurrentUser(user);
     loadUsuarios();
-  };
+  }, [navigate, toast]);
 
   const loadUsuarios = async () => {
     try {
@@ -77,10 +77,11 @@ export default function AdminUsuarios() {
       // Por enquanto, deixar vazio para não quebrar
       setUsuarios([]);
       setUserRoles({});
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro ao carregar usuários",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -96,10 +97,11 @@ export default function AdminUsuarios() {
         title: "Funcionalidade em desenvolvimento",
         description: "Gerenciamento de roles será implementado em breve",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       toast({
         title: "Erro",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
