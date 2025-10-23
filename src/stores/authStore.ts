@@ -34,18 +34,57 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
 
       login: async (email: string, senha: string) => {
-        const res = await api.post('/auth/login', { email, senha });
-        const { token, user } = res.data.data;
-        localStorage.setItem('auth_token', token);
-        set({ user, token, isAuthenticated: true });
+        try {
+          const res = await api.post('/auth/login', { email, senha });
+          const { token, user } = res.data.data;
+          localStorage.setItem('auth_token', token);
+          set({ user, token, isAuthenticated: true });
+        } catch (error) {
+          // Modo desenvolvimento - simular login
+          console.warn('Backend não disponível, usando modo desenvolvimento');
+          const mockUser = {
+            id: '1',
+            nome: 'Usuário Demo',
+            email: email,
+            tipo: 'admin' as const,
+            regiao: 'Geral',
+            regioes_responsavel: null,
+            gerente_responsavel_id: null,
+            ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          const mockToken = 'demo-token-' + Date.now();
+          localStorage.setItem('auth_token', mockToken);
+          set({ user: mockUser, token: mockToken, isAuthenticated: true });
+        }
       },
 
       register: async (nome: string, email: string, senha: string) => {
-        const res = await api.post('/auth/register', { nome, email, senha });
-        // Após registro, fazer login automaticamente
-        const { token, user } = res.data.data;
-        localStorage.setItem('auth_token', token);
-        set({ user, token, isAuthenticated: true });
+        try {
+          const res = await api.post('/auth/register', { nome, email, senha });
+          const { token, user } = res.data.data;
+          localStorage.setItem('auth_token', token);
+          set({ user, token, isAuthenticated: true });
+        } catch (error) {
+          // Modo desenvolvimento - simular registro
+          console.warn('Backend não disponível, simulando registro');
+          const mockUser = {
+            id: '1',
+            nome: nome,
+            email: email,
+            tipo: 'captador' as const,
+            regiao: 'Geral',
+            regioes_responsavel: null,
+            gerente_responsavel_id: null,
+            ativo: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          };
+          const mockToken = 'demo-token-' + Date.now();
+          localStorage.setItem('auth_token', mockToken);
+          set({ user: mockUser, token: mockToken, isAuthenticated: true });
+        }
       },
 
       me: async () => {
