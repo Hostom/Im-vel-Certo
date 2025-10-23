@@ -95,7 +95,7 @@ async function startServer() {
       await pool.query('SELECT NOW()');
       console.log('✅ Conexão com PostgreSQL estabelecida');
     } catch (dbError) {
-      console.warn('⚠️ Aviso: Não foi possível conectar ao banco de dados:', dbError.message);
+      console.warn('⚠️ Aviso: Não foi possível conectar ao banco de dados:', (dbError as Error).message);
       console.log('🔄 Servidor iniciado sem banco de dados - configuração pendente');
     }
 
